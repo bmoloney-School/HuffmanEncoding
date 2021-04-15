@@ -1,7 +1,6 @@
 import java.util.ArrayList;
 import java.util.Collections;
-import java.time.format.DateTimeFormatter;
-import java.time.LocalDateTime;
+
 
 public class HuffmanTree {
     ArrayList<Pixel> pixelArray;
@@ -12,9 +11,6 @@ public class HuffmanTree {
         sortArray();
         buildTree();
     }
-
-    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
-    LocalDateTime now = LocalDateTime.now();
 
     protected class Node {
         int pixel = 0;
@@ -54,8 +50,8 @@ public class HuffmanTree {
             if(root == null){
                 n2 = new Node(pixelArray.get(i + 1).pixelVal);
                 root = new Node(n1.pixel + n2.pixel);
-                root.left = n1;
-                root.right = n2;
+                root.left = n2;
+                root.right = n1;
                 i++;
             }
             else if(root.pixel < n1.pixel){
@@ -64,7 +60,7 @@ public class HuffmanTree {
                 root.left = temp;
                 root.right = n1;
             }
-            else if(n1.pixel < root.pixel){
+            else {
                 Node temp = root;
                 root = new Node(root.pixel + n1.pixel);
                 root.left = n1;
@@ -78,7 +74,9 @@ public class HuffmanTree {
     public String stringFromTree(ArrayList<Integer> pixelValues) {
         String huffmanString = "";
         for (int p:pixelValues) {
-            Node node = root;
+            huffmanString = stringFromTree2(p, root, huffmanString);
+            System.out.println("");
+            /*Node node = root;
             while (true) {
                 if (p == node.left.pixel) {
                     huffmanString += "0";
@@ -90,8 +88,30 @@ public class HuffmanTree {
                 huffmanString += "1";
                 node = node.right;
             }
+            */
         }
         return huffmanString;
     }
+
+
+    public String stringFromTree2(int pixel, Node root, String bits) {
+        try {
+            if (root.right.pixel == pixel) {
+                System.out.print("1");
+                return bits += "1";
+            } else if (root.left.pixel == pixel) {
+                System.out.print("0");
+                return bits += "0";
+            } else {
+                System.out.print("1 (deeper)");
+                stringFromTree2(pixel, root.right, bits += "1");
+            }
+        }
+        catch (NullPointerException e) {
+            System.out.println(e + " Pixel: " + pixel + " root: " + root.pixel);
+        }
+        return bits;
+    }
+
 
 }

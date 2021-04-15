@@ -1,21 +1,18 @@
-import java.awt.*;
-import java.io.File;
-import java.io.IOException;
+
+import java.io.*;
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import javax.imageio.ImageIO;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.concurrent.*;
+import java.time.format.DateTimeFormatter;
+import java.time.*;
 
 import javafx.application.Application;
 import javafx.embed.swing.SwingFXUtils;
-import javafx.scene.Group;
-import javafx.scene.Scene;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.stage.Stage;
+import javafx.scene.*;
+import javafx.scene.image.*;
+import javafx.stage.*;
 
 import static javafx.application.Application.launch;
 
@@ -23,16 +20,37 @@ public class ImageToTree extends Application{
     /*
     NOTE: I recommend java 8 for this since it was the last version that shipped with jfx in the jdk, you can use a newer
     version if you want to go through the trouble of installing jfx yourself
+
+    REQUIREMENTS:
+    Due to limitations of the JVM stack, This program will crash on larger images. I am sure there are optimizations
+    I could put in place to minimize this issue but I have found it is easier in the short term to just increase the
+    heap size with the -Xss6g flag. Without this flag the largest image I got to work consistently was 100x100. It should also
+    be noted that this program can take a while to run due to binary trees having a complexity of O(logn).
+    --UPDATE
+    The error I thought was caused by the stack may not be? On the 720x480 image, I get the occasional Null Pointer error
+    when converting the blue values into bits. While troubleshooting I removed the multithreading to no avail and after many
+    hours of trying to figure it out it just worked. I have no clue why so if you do please let me know.
+
+    DESCRIPTION:
+    This program
+    1.) Takes an image
+    2.) Builds a Huffman Tree for the image
+    3.) Converts the image into a string of 1's and 0's using the tree generated in step 2
+    4.) Converts the string generated in step 3 back into an image file
+    5.) displays the original image alongside the one that has been encoded and decoded
+    along with the % difference of bits from the original compared to the binary string from step 3.
      */
 
-    //A way to store both the rgb value of the pixel and the number of occurrences of that value.
+    //TODO figure out issue where result same length as imagein
 
     public void start(Stage stage) throws IOException, ExecutionException, InterruptedException {
 
-        String img = "100x100.jpg";
-        BufferedImage image = readImage(img,100,100);
 
-        // pixel value is unique TODO -- Possibly add alpha value, dunno what that shit is yet
+
+        String img = "10x10.jpg";
+        BufferedImage image = readImage(img,10,10);
+
+        // pixel value is unique TODO -- Possibly add alpha value, I do not know how that impacts the image
         ArrayList<Integer> ImageRed = new ArrayList<Integer>(image.getWidth() * image.getHeight());
         ArrayList<Integer> ImageGreen = new ArrayList<Integer>(image.getWidth() * image.getHeight());
         ArrayList<Integer> ImageBlue = new ArrayList<Integer>(image.getWidth() * image.getHeight());
@@ -54,22 +72,22 @@ public class ImageToTree extends Application{
         HuffmanTree greenTree = new HuffmanTree(greenPixels);
         HuffmanTree blueTree = new HuffmanTree(bluePixels);
 
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+        LocalDateTime start = LocalDateTime.now();
 
-        ExecutorService threadpool = Executors.newCachedThreadPool();
-        Future<String> redString = threadpool.submit(() -> redTree.stringFromTree(ImageRed));
-        Future<String> greenString = threadpool.submit(() -> greenTree.stringFromTree(ImageGreen));
-        Future<String> blueString = threadpool.submit(() -> blueTree.stringFromTree(ImageBlue));
+        String redResult = redTree.stringFromTree(ImageRed);
+        System.out.println("GREEN");
+        String greenResult = greenTree.stringFromTree(ImageGreen);
+        System.out.println("BLUE");
+        String blueResult = blueTree.stringFromTree(ImageBlue);
 
-        String redResult = redString.get();
-        String greenResult = greenString.get();
-        String blueResult = blueString.get();
-
-        threadpool.shutdown();
+        LocalDateTime end = LocalDateTime.now();
+        Duration duration = Duration.between(start,end);
 
         System.out.println("RED " + redResult.length());
         System.out.println("GREEN " + greenResult.length());
         System.out.println("BLUE " + blueResult.length());
-        System.out.println("this would normally take 10 * 10 * 256 = 25600 bits per color");
+        System.out.println("This took " + duration.getSeconds() + " seconds or " + duration.getSeconds()/ 60.0 + " minutes");
 
 
 
@@ -136,20 +154,17 @@ public class ImageToTree extends Application{
 
     //HAVE TO BUILD TREE FIRST
     public static BufferedImage arrToImage(ArrayList<Pixel> red){
-        BufferedImage imageFromArr = new BufferedImage(100, 100,BufferedImage.TYPE_INT_ARGB);
+        BufferedImage imageFromArr = new BufferedImage(720, 480,BufferedImage.TYPE_INT_ARGB);
 
         return null;
     }
 
-    /*
-    Takes
-     */
+
     public static BufferedImage readImage(String file,int width, int height) throws IOException{
         BufferedImage image = null;
         File f = null;
 
         try{
-            //TEST IMAGE DIMENTIONS T
             f = new File(file);
 
             image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
