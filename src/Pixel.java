@@ -6,6 +6,11 @@ public class Pixel{
     Pixel(int pixelVal){
         this.pixelVal = pixelVal;
     }
+    Pixel(int pixelVal, int pixelCount){
+        this.pixelCount = pixelCount;
+        this.pixelVal = pixelVal;
+
+    }
     protected void incr(){
         pixelCount++;
     }
@@ -13,6 +18,8 @@ public class Pixel{
         pixelCount--;
     }
 
+    Pixel left;
+    Pixel right;
 
 }
 class ComparePixelCount implements Comparator<Pixel>{

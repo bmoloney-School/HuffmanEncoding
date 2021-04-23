@@ -1,43 +1,62 @@
-import java.util.ArrayList;
-import java.util.Collections;
-import java.time.format.DateTimeFormatter;
-import java.time.LocalDateTime;
+import java.util.*;
 
 public class HuffmanTree {
-    ArrayList<Pixel> pixelArray;
-    Node root;
+    //How pixels are initially stored, should be merged with pixelArray but due to time constraints thats not happening
+    private ArrayList<Pixel> pixelArray;
+    //Queue used to build tree
+    private PriorityQueue<Pixel> pixelQueue;
+    //Dictionary to store codes for each pixel -- this is SO much easier (and faster) than searching the tree for the correct code every time
+    private Hashtable pixelDictionary = new Hashtable();
+
+    Pixel root = null;
 
     HuffmanTree(ArrayList<Pixel> pixelArray){
         this.pixelArray = pixelArray;
-        sortArray();
+        pixelQueue = new PriorityQueue<Pixel>(pixelArray.size(), new ComparePixelCount());
+        populateQueue();
         buildTree();
+        generateCodes(root,"");
     }
 
-    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
-    LocalDateTime now = LocalDateTime.now();
-
-    protected class Node {
-        int pixel = 0;
-        //Sub nodes in the tree
-        Node left;
-        Node right;
-        Node(int pixel){
-            this.pixel = pixel;
+    public ArrayList<Integer> arrToImage(String color){
+        ArrayList<Integer> pixelValues = new ArrayList<Integer>(color.length());
+        for(int i = 0; i < color.length() - 1; i++){
+            for(int j = i; j < color.length() - 1; j++) {
+                if (pixelDictionary.containsValue(color.substring(i,j))){
+                    pixelValues.add(getKeyFromValue(color.substring(i,j)));
+                    i = j;
+                }
+            }
         }
-        protected boolean hasLeft(){
-            if(left == null) return false;
-            return true;
-        }
-        protected boolean hasRight(){
-            if(right == null) return false;
-            return true;
-        }
+        return pixelValues;
     }
 
-    void sortArray(){
-        Collections.sort(pixelArray,new ComparePixelCount());
-        for (Pixel p:pixelArray) {
-            System.out.println(p.pixelCount + " " + p.pixelVal);
+    //Janky code so I can get the key from the Value
+    private Integer getKeyFromValue(String value){
+
+        Integer key = null;
+
+        //get an iterator for the keys
+        Iterator<Integer> itr = pixelDictionary.keySet().iterator();
+        Integer currentKey = null;
+
+        while( itr.hasNext() ){
+            currentKey = itr.next();
+            if( pixelDictionary.get(currentKey).equals(value) ){
+                return currentKey;
+            }
+        }
+        return key;
+    }
+
+
+
+
+
+
+    void populateQueue(){
+        for(int i = 0; i < pixelArray.size(); i++){
+            pixelQueue.add(pixelArray.get(i));
         }
     }
 
@@ -46,52 +65,38 @@ public class HuffmanTree {
         if (root != null){
             return;
         }
-        Node n1;
-        Node n2;
-        for(int i = 0; i < pixelArray.size(); i ++){
-            n1 = new Node(pixelArray.get(i).pixelVal);
 
-            if(root == null){
-                n2 = new Node(pixelArray.get(i + 1).pixelVal);
-                root = new Node(n1.pixel + n2.pixel);
-                root.left = n1;
-                root.right = n2;
-                i++;
-            }
-            else if(root.pixel < n1.pixel){
-                Node temp = root;
-                root = new Node(root.pixel + n1.pixel);
-                root.left = temp;
-                root.right = n1;
-            }
-            else if(n1.pixel < root.pixel){
-                Node temp = root;
-                root = new Node(root.pixel + n1.pixel);
-                root.left = n1;
-                root.right = temp;
-            }
-            System.out.println("ROOT: " + root.pixel + " LEFT: " + root.left.pixel + " RIGHT: " + root.right.pixel);
+        while (pixelQueue.size() > 1){
+            Pixel p1 = pixelQueue.peek();
+            pixelQueue.poll();
+
+            Pixel p2 = pixelQueue.peek();
+            pixelQueue.poll();
+
+            Pixel p3 = new Pixel(-1, p1.pixelCount + p2.pixelCount);
+            p3.left = p1;
+            p3.right = p2;
+            root = p3;
+            pixelQueue.add(p3);
         }
     }
 
-
-    public String stringFromTree(ArrayList<Integer> pixelValues) {
-        String huffmanString = "";
-        for (int p:pixelValues) {
-            Node node = root;
-            while (true) {
-                if (p == node.left.pixel) {
-                    huffmanString += "0";
-                    break;
-                } else if (p == node.right.pixel) {
-                    huffmanString += "1";
-                    break;
-                }
-                huffmanString += "1";
-                node = node.right;
-            }
+    private void generateCodes(Pixel pix, String s){
+        if(pix.left == null && pix.right == null ){
+            System.out.println(pix.pixelVal + "\t:\t" + s);
+            pixelDictionary.put(pix.pixelVal,s);
+            return;
         }
-        return huffmanString;
+        generateCodes(pix.left,s + '0');
+        generateCodes(pix.right, s + '1');
+    }
+
+    public String getCodeForImage(ArrayList<Integer> image){
+        String huffmanCode = "";
+        for (int i:image) {
+            huffmanCode += pixelDictionary.get(i);
+        }
+        return huffmanCode;
     }
 
 }

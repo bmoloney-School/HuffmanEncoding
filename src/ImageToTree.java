@@ -15,89 +15,98 @@ import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import static javafx.application.Application.launch;
 
 public class ImageToTree extends Application{
-    /*
-    NOTE: I recommend java 8 for this since it was the last version that shipped with jfx in the jdk, you can use a newer
-    version if you want to go through the trouble of installing jfx yourself
-     */
-
-    //A way to store both the rgb value of the pixel and the number of occurrences of that value.
 
     public void start(Stage stage) throws IOException, ExecutionException, InterruptedException {
+        int width = 400, height = 400;
+        String img = width + "x" + height +".jpg";
 
-        String img = "100x100.jpg";
-        BufferedImage image = readImage(img,100,100);
+        BufferedImage image = readImage(img);
 
-        // pixel value is unique TODO -- Possibly add alpha value, dunno what that shit is yet
-        ArrayList<Integer> ImageRed = new ArrayList<Integer>(image.getWidth() * image.getHeight());
-        ArrayList<Integer> ImageGreen = new ArrayList<Integer>(image.getWidth() * image.getHeight());
-        ArrayList<Integer> ImageBlue = new ArrayList<Integer>(image.getWidth() * image.getHeight());
+        /*
+        I know the following code is not great but it was the best way I could think of to calculate each color with
+        its own tree. Unfortunately that mean there is 3 occurrences of each line.
+         */
+
+        ArrayList<Integer> imageRed = new ArrayList<Integer>(image.getWidth() * image.getHeight());
+        ArrayList<Integer> imageGreen = new ArrayList<Integer>(image.getWidth() * image.getHeight());
+        ArrayList<Integer> imageBlue = new ArrayList<Integer>(image.getWidth() * image.getHeight());
 
         //Turn the image file into 3 arrays, one for each color
         for(int x = 0; x < image.getWidth(); x ++){
             for(int y = 0; y < image.getHeight(); y ++){
                 Color c = new Color(image.getRGB(x,y), true);
-                ImageRed.add(c.getRed());
-                ImageGreen.add(c.getGreen());
-                ImageBlue.add(c.getBlue());
+                imageRed.add(c.getRed());
+                imageGreen.add(c.getGreen());
+                imageBlue.add(c.getBlue());
             }
         }
-        ArrayList<Pixel> redPixels = imageArrToPixelArr(ImageRed);
-        ArrayList<Pixel> greenPixels = imageArrToPixelArr(ImageGreen);
-        ArrayList<Pixel> bluePixels = imageArrToPixelArr(ImageBlue);
+        ArrayList<Pixel> redPixels = imageArrToPixelArr(imageRed);
+        ArrayList<Pixel> greenPixels = imageArrToPixelArr(imageGreen);
+        ArrayList<Pixel> bluePixels = imageArrToPixelArr(imageBlue);
 
+        System.out.println("RED");
         HuffmanTree redTree = new HuffmanTree(redPixels);
+        System.out.println("GREEN");
         HuffmanTree greenTree = new HuffmanTree(greenPixels);
+        System.out.println("BLUE");
         HuffmanTree blueTree = new HuffmanTree(bluePixels);
 
+        //Speed things up a bit and calculate the huffman encoding for each color at the same time with multithreading
+        //I was very Impressed I got this to work
 
         ExecutorService threadpool = Executors.newCachedThreadPool();
-        Future<String> redString = threadpool.submit(() -> redTree.stringFromTree(ImageRed));
-        Future<String> greenString = threadpool.submit(() -> greenTree.stringFromTree(ImageGreen));
-        Future<String> blueString = threadpool.submit(() -> blueTree.stringFromTree(ImageBlue));
+        Future<String> redString = threadpool.submit(() -> redTree.getCodeForImage(imageRed));
+        Future<String> greenString = threadpool.submit(() -> greenTree.getCodeForImage(imageGreen));
+        Future<String> blueString = threadpool.submit(() -> blueTree.getCodeForImage(imageBlue));
 
         String redResult = redString.get();
         String greenResult = greenString.get();
         String blueResult = blueString.get();
-
         threadpool.shutdown();
 
-        System.out.println("RED " + redResult.length());
-        System.out.println("GREEN " + greenResult.length());
-        System.out.println("BLUE " + blueResult.length());
-        System.out.println("this would normally take 10 * 10 * 256 = 25600 bits per color");
+        System.out.println("Red takes:" + redResult.length() + " bits to store as opposed to the "
+                + width * height * 8 + " bits it would normally take" );
+        System.out.println("Green takes:" + greenResult.length() + " bits to store as opposed to the "
+                + width * height * 8 + " bits it would normally take" );
+        System.out.println("Blue takes:" + blueResult.length() + " bits to store as opposed to the "
+                + width * height * 8 + " bits it would normally take" );
 
+        ArrayList<Integer> redImageFromTree = redTree.arrToImage(redResult);
+        ArrayList<Integer> greenImageFromTree = greenTree.arrToImage(greenResult);
+        ArrayList<Integer> blueImageFromTree = blueTree.arrToImage(blueResult);
 
+        BufferedImage imageFromTree = intArrayToImage(redImageFromTree, greenImageFromTree, blueImageFromTree,width,height);
 
-
-
-
-        /*
-        CODE TO DISPLAY IMAGES
-         */
-
-        //creating the image object
         InputStream stream = new FileInputStream(img);
 
-        Image leftImage = SwingFXUtils.toFXImage(image, null );
-        //Image image = new Image(stream);
-        //Creating the image view
-        ImageView imageView = new ImageView();
-        //Setting image to the image view
-        imageView.setImage(leftImage);
-        //Setting the image view parameters
-        imageView.setX(10);
-        imageView.setY(10);
-        imageView.setFitWidth(680);
+        HBox hbox = new HBox();
 
-        imageView.setPreserveRatio(true);
-        //Setting the Scene object
-        Group root = new Group(imageView);
-        Scene scene = new Scene(root, 680, 540);
+        Image leftImage = SwingFXUtils.toFXImage(image, null );
+        ImageView leftImageView = new ImageView();
+        leftImageView.setImage(leftImage);
+        leftImageView.setX(10);
+        leftImageView.setY(10);
+        leftImageView.setPreserveRatio(true);
+
+        Image rightImage = SwingFXUtils.toFXImage(imageFromTree,null);
+        ImageView rightImageView = new ImageView();
+        rightImageView.setImage(rightImage);
+        rightImageView.setX(10);
+        rightImageView.setY(10);
+        rightImageView.setPreserveRatio(true);
+        hbox.getChildren().add(0,leftImageView);
+        hbox.getChildren().add(1,rightImageView);
+        Group root = new Group(hbox);
+
+
+        Scene scene = new Scene(root, width * 2, height + 20);
         stage.setTitle("Displaying Image");
         stage.setScene(scene);
         stage.show();
@@ -134,33 +143,38 @@ public class ImageToTree extends Application{
         return pixelArr;
     }
 
-    //HAVE TO BUILD TREE FIRST
-    public static BufferedImage arrToImage(ArrayList<Pixel> red){
-        BufferedImage imageFromArr = new BufferedImage(100, 100,BufferedImage.TYPE_INT_ARGB);
-
-        return null;
-    }
-
-    /*
-    Takes
-     */
-    public static BufferedImage readImage(String file,int width, int height) throws IOException{
+    public static BufferedImage readImage(String file) throws IOException{
         BufferedImage image = null;
         File f = null;
 
         try{
-            //TEST IMAGE DIMENTIONS T
             f = new File(file);
 
-            image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
             image = ImageIO.read(f);
             System.out.println("Read Successfully.");
             return image;
         }
         catch(IOException e){
-            System.out.println("Your shit is fucked dude: \n" + e);
+            System.out.println("Invalid image: \n" + e);
             throw new IOException();
         }
     }
 
+    public static BufferedImage intArrayToImage(ArrayList<Integer> red, ArrayList<Integer> green, ArrayList<Integer> blue, int width, int height) {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+
+        int arrayIndex = 0;
+        for(int i = 0; i < width; i++){
+            for(int j = 0; j < height; j++) {
+                g.setColor(new Color(red.get(arrayIndex),green.get(arrayIndex),blue.get(arrayIndex)));
+                g.drawLine(i,j,i,j);
+                if(arrayIndex < width * height - 2) {
+                    arrayIndex++;
+                }
+            }
+        }
+        g.dispose();
+        return image;
+    }
 }
