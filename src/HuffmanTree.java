@@ -1,15 +1,19 @@
 import java.util.*;
 
 public class HuffmanTree {
-    //How pixels are initially stored, should be merged with pixelArray but due to time constraints thats not happening
+    //--GLOBAL VARS--
+    //How pixels are initially stored, should be merged with pixelArray but due to time constraints that is not happening
     private ArrayList<Pixel> pixelArray;
     //Queue used to build tree
     private PriorityQueue<Pixel> pixelQueue;
     //Dictionary to store codes for each pixel -- this is SO much easier (and faster) than searching the tree for the correct code every time
     private Hashtable pixelDictionary = new Hashtable();
-
+    //root of the tree -- this is only the root after the tree has been built
     Pixel root = null;
 
+
+    //Constructor for the HuffmanTree object. It builds the tree and populates the queue from here since those should
+    // both only ever be ran once.
     HuffmanTree(ArrayList<Pixel> pixelArray){
         this.pixelArray = pixelArray;
         pixelQueue = new PriorityQueue<Pixel>(pixelArray.size(), new ComparePixelCount());
@@ -18,6 +22,10 @@ public class HuffmanTree {
         generateCodes(root,"");
     }
 
+    //converts the Huffman encoding for a single color to an arraylist of pixels. It uses two iterators and moves
+    // the outer one every time a match is found in the tree and moves the inner one through each value in the
+    // huffman encoding checking to see if there is a matching node in the tree. If there is, it adds that to the
+    // arrayList and then moves the outer iterator to its current position.
     public ArrayList<Integer> arrToImage(String color){
         ArrayList<Integer> pixelValues = new ArrayList<Integer>(color.length());
         for(int i = 0; i < color.length() - 1; i++){
@@ -31,7 +39,7 @@ public class HuffmanTree {
         return pixelValues;
     }
 
-    //Janky code so I can get the key from the Value
+    //Abusing the HashTable since I know each key only has one object so it is a 1:1 mapping
     private Integer getKeyFromValue(String value){
 
         Integer key = null;
@@ -49,18 +57,15 @@ public class HuffmanTree {
         return key;
     }
 
-
-
-
-
-
-    void populateQueue(){
+    //Should be removed eventually since it should be populated from the start instead of the ArrayList
+    private void populateQueue(){
         for(int i = 0; i < pixelArray.size(); i++){
             pixelQueue.add(pixelArray.get(i));
         }
     }
 
-    void buildTree(){
+    //Build the tree from priority queue
+    private void buildTree(){
         // no reason to run again if its already built
         if (root != null){
             return;
@@ -81,6 +86,8 @@ public class HuffmanTree {
         }
     }
 
+    //Uses the tree to generate huffman encoding for each Pixel. Much faster to do this once and store it than traverse
+    // the tree each time
     private void generateCodes(Pixel pix, String s){
         if(pix.left == null && pix.right == null ){
             System.out.println(pix.pixelVal + "\t:\t" + s);
@@ -91,6 +98,7 @@ public class HuffmanTree {
         generateCodes(pix.right, s + '1');
     }
 
+    //takes in array of pixels (single color) and turns them into a huffman encoding
     public String getCodeForImage(ArrayList<Integer> image){
         String huffmanCode = "";
         for (int i:image) {

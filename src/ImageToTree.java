@@ -24,7 +24,7 @@ import static javafx.application.Application.launch;
 public class ImageToTree extends Application{
 
     public void start(Stage stage) throws IOException, ExecutionException, InterruptedException {
-        int width = 400, height = 400;
+        int width = 10, height = 10;
         String img = width + "x" + height +".jpg";
 
         BufferedImage image = readImage(img);
