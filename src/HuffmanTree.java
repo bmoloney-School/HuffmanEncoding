@@ -83,28 +83,39 @@ public class HuffmanTree {
             p3.right = p2;
             root = p3;
             pixelQueue.add(p3);
+            System.out.println("Pixel: " + p1.pixelVal + " Added to Tree");
+            System.out.println("Pixel: " + p2.pixelVal + " Added to Tree");
         }
     }
 
     //Uses the tree to generate huffman encoding for each Pixel. Much faster to do this once and store it than traverse
     // the tree each time
     private void generateCodes(Pixel pix, String s){
-        if(pix.left == null && pix.right == null ){
-            System.out.println(pix.pixelVal + "\t:\t" + s);
-            pixelDictionary.put(pix.pixelVal,s);
-            return;
-        }
-        generateCodes(pix.left,s + '0');
-        generateCodes(pix.right, s + '1');
+        //Quick and dirty way to add threading to this method
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if(pix.left == null && pix.right == null ){
+                    System.out.println(pix.pixelVal + "\t:\t" + s);
+                    pixelDictionary.put(pix.pixelVal,s);
+                    return;
+                }
+                generateCodes(pix.left,s + '0');
+                generateCodes(pix.right, s + '1');
+            }
+        });
+
+        thread.run();
+
     }
 
     //takes in array of pixels (single color) and turns them into a huffman encoding
     public String getCodeForImage(ArrayList<Integer> image){
-        String huffmanCode = "";
+        StringBuilder sb = new StringBuilder();
         for (int i:image) {
-            huffmanCode += pixelDictionary.get(i);
+            sb.append(pixelDictionary.get(i));
         }
-        return huffmanCode;
+        return sb.toString();
     }
 
 }
